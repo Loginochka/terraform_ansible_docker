@@ -1,0 +1,126 @@
+---
+- name: Docker automation installation
+  hosts: all
+  become: true
+  tasks:
+    - name: Create directory for key
+      ansible.builtin.file:
+        path: /etc/apt/keyrings
+        state: directory
+        mode: '0755'
+      register: key_change
+    - name: Install required packages
+      ansible.builtin.apt:
+        name: "{{ item }}"
+        state: present
+        update_cache: true
+      with_items:
+        - apt-transport-https
+        - ca-certificates
+        - curl
+        - gnupg
+        - software-properties-common
+        - git
+      when: key_change.changed
+    - name: Add docker key
+      ansible.builtin.apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        keyring: /etc/apt/keyrings/docker.gpg
+        state: present
+    - name: Add Docker repository
+      ansible.builtin.apt_repository:
+        repo: >-
+          deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu {{ ansible_lsb.codename }} stable
+        filename: docker
+        state: present
+      register: docker_repo
+    - name: Install docker
+      ansible.builtin.apt:
+        name: "{{ item }}"
+        state: present
+        update_cache: true
+      with_items:
+        - docker-ce
+        - docker-ce-cli
+        - containerd.io
+        - docker-buildx-plugin
+        - docker-compose-plugin
+    - name: Create docker group
+      ansible.builtin.group:
+        force: true
+        name: docker
+        state: present
+    - name: Add ansible user to docker group
+      ansible.builtin.user:
+        append: true
+        name: "{{ ansible_user }}"
+        groups: docker
+    - name: Check docker is active
+      ansible.builtin.service:
+        name: "{{ item }}"
+        state: started
+        enabled: true
+      with_items:
+        - docker
+        - containerd
+    - name: Reset ssh connection after change user
+      ansible.builtin.meta:
+        reset_connection
+    # - name: Clone Git repo with own project # noqa: latest
+    #   ansible.builtin.git:
+    #     repo: https://github.com/Loginochka/shvirtd.git
+    #     dest: /home/"{{ ansible_user }}"/shvirtd
+    # - name: Compose the project
+    #   community.docker.docker_compose_v2:
+    #     project_src: /home/"{{ ansible_user }}"/shvirtd
+    #   timeout: 120
+    #   register: output
+    # - name: Show results
+    #   ansible.builtin.debug:
+    #     var: output
+- name: Create swarm cluster
+  hosts: master
+  tasks:
+    - name: Check if Swarm has already been initialized
+      ansible.builtin.command: docker node ls
+      register: swarm_status
+      ignore_errors: true
+    - name: Initialize Docker Swarm
+      ansible.builtin.command: >-
+        docker swarm init --advertise-addr "{{ ansible_default_ipv4.address }}"
+      ignore_errors: true
+      register: swarm_init_result
+      when: swarm_status.rc != 0
+    - name: Debug
+      ansible.builtin.debug:
+        var: swarm_init_result.stdout
+    - name: Get the worker join-token
+      ansible.builtin.command: docker swarm join-token --quiet worker
+      register: worker_token
+      ignore_errors: true
+    - name: Debug
+      ansible.builtin.debug:
+        var: worker_token
+- name: Connect to cluster
+  hosts: worker
+  tasks:
+    - name: Debug
+      ansible.builtin.debug:
+        var: "{{ hostvars[groups['master'][0]]['worker_token']['stdout'] }}"
+    - name: Add Workers to the Swarm
+      ansible.builtin.command: >-
+        docker swarm join --token {{ hostvars[groups['master'][0]]['worker_token']['stdout'] }} {{ groups['master'][0] }}:2377
+      register: node_result
+    - name: Result of connect to cluster
+      ansible.builtin.debug:
+        var: node_result.stdout
+- name: Check status swarm cluster
+  hosts: master
+  tasks:
+    - name: Get node ls
+      ansible.builtin.command: >-
+        docker node ls
+      register: cluster_status
+    - name: Get status cluster
+      ansible.builtin.debug:
+        var: cluster_status.stdout_lines

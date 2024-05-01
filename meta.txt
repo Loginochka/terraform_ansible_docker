@@ -1,0 +1,13 @@
+#cloud-config
+repo_update: true
+repo_upgrade: true
+apt:
+  preserve_sources_list: true
+users:
+  - name: danil
+    groups: sudo
+    shell: /bin/bash
+    sudo: 'ALL=(ALL) NOPASSWD:ALL'
+    ssh-authorized-keys:
+      - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIVuq6JxYs3RLanyLHKZUaLDdAEPu3A6AmRHL3+LFdx2 danil@winXI
+      - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDJcMYWEosb5nqFGCdg1/LvegRNQgrl3fJkRYFnAxW/5cuRAWVeW0kToRAAv4W0UIMfA+2lndnxhAjq8Upiduah6+fUlH18MpvA8bGTyM1Kp/+pHsItqwhwdWRrjvrK/vDz293zyM/9l22HBFuZhlPy5AXutoayxmOgH7ZDONPB2XgnHE3a/9SJ0RrXAIAim3k/hZ0IF85v0gG7sMnwsYw+5R/TGb968Df7bW8TPUjG+b3EJb5OS1VnU7vmTMUpmtul8Hsjfm3JzwfVQ1/PNPO68AEEjAA+IH4ILVPNAZ6IylFxdxdqaLI1Im+EE4nb75AkwKRuPYPVUGAa7jn7aNtA73w+6pQ2fyX/DFNEHMo4k6hSCDwkmr6JX4KtJTrwoqsxYXkJc2x9JOZtW/drpnnvZqLuGdlfWT+bI5ulsVSbcncOsiYORBCyrPXOUnu1R6gJBBMNyoVhIv1UAffB8NVnRfbCVlFh7u1BzghUm//BJYwaLwHL3IJCty2ULAfgaJ0= danil@winXI

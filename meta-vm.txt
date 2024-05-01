@@ -1,0 +1,12 @@
+#cloud-config
+repo_update: true
+repo_upgrade: true
+apt:
+  preserve_sources_list: true
+users:
+  - name: danil
+    groups: sudo
+    shell: /bin/bash
+    sudo: 'ALL=(ALL) NOPASSWD:ALL'
+    ssh-authorized-keys:
+      - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIE2zNs60zHsPBH1wscsOSnuGx5ZGVo/Rc5LXK0pRYX9y danil@ru-bst-b
